@@ -320,7 +320,7 @@ button,a,.li,.mrow,.stage,.chip{touch-action:manipulation;-webkit-tap-highlight-
  .mtop .sync{margin-left:auto;padding:0}
  .main{padding:20px 16px calc(150px + env(safe-area-inset-bottom))}
  .hd{margin-bottom:18px}.hd h1{font-size:24px}.hd p{font-size:13px}
- .hd .acts .btn.pri{display:none}
+ .hd .acts .btn.nl{display:none}
  .fg,.ig{grid-template-columns:1fr}
  .mst{grid-template-columns:1fr 1fr}
  .pipe{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -473,7 +473,7 @@ const DEFAULT_TPL={
 /* ====== STATE ====== */
 let sb=null,user=null,channel=null,pending={};
 let db={leads:[],cfg:{id:'slconfig',tpl:null,link:'',brokerLink:''},brokers:[]};
-let view='oggi',form=null,drawerId=null;
+let view='oggi',fm=null,drawerId=null;
 let lf={q:'',fase:'',social:'',dir:''},period='all';
 
 /* ====== UTILS ====== */
@@ -550,14 +550,14 @@ async function loadRemote(){
   while(true){const{data,error}=await sb.from('crm_records').select('id,kind,data').in('kind',['slead','slconfig']).range(from,from+999);if(error)throw error;all=all.concat(data);if(data.length<1000)break;from+=1000}
   const old=JSON.stringify(db);db.leads=[];db.brokers=[];all.forEach(applyRow);
   for(const[id,v]of Object.entries(pending)){db.leads=db.leads.filter(x=>x.id!==id);if(!v.del){if(v.kind==='slconfig')db.cfg=v.data;else db.leads.push(v.data)}}
-  cacheSave();if(old!==JSON.stringify(db))render();flush();
+  cacheSave();if(old!==JSON.stringify(db))softRender();flush();
 }
 function subscribe(){
   if(channel)sb.removeChannel(channel);
   const h=p=>{
     if(p.eventType==='DELETE'){const o=p.old||{};if(!o.id||pending[o.id])return;db.leads=db.leads.filter(x=>x.id!==o.id);db.brokers=db.brokers.filter(x=>x.id!==o.id)}
     else{const r=p.new;if(!r||pending[r.id])return;applyRow(r)}
-    cacheSave();clearTimeout(rT);rT=setTimeout(()=>{if(!form)render()},150);
+    cacheSave();clearTimeout(rT);rT=setTimeout(softRender,150);
   };
   const flt='user_id=eq.'+user.id;
   channel=sb.channel('slcrm-'+user.id)
@@ -584,6 +584,8 @@ function counts(){
   const due=dueLeads().length;const c=$('#c-oggi');c.textContent=due||'';c.classList.toggle('hot',!!due);
   $('#c-leads').textContent=db.leads.length||'';
 }
+function busy(){const a=document.activeElement;return !!fm||(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&a.id!=='lq')}
+function softRender(){if(busy()){clearTimeout(rT);rT=setTimeout(softRender,1500);return}render()}
 function render(anim){
   const m=$('#main');
   m.innerHTML=({oggi:vOggi,dash:vDash,leads:vLeads,analisi:vAnalisi,tpl:vTpl}[view]||vOggi)();
@@ -615,7 +617,7 @@ function vOggi(){
   const soon=db.leads.filter(l=>active(l)&&l.nextFu&&dd(l.nextFu)>0&&dd(l.nextFu)<=3).sort((a,b)=>a.nextFu.localeCompare(b.nextFu));
   const cold=db.leads.filter(l=>active(l)&&!l.nextFu&&l.fase!=='cliente');
   const sentToday=db.leads.reduce((a,l)=>a+(l.ev||[]).filter(e=>e.t==='fu'&&ymd(e.d)===ymd(new Date())).length,0);
-  return `<div class="hd"><div><h1>Follow-up</h1><p>${due.length?`${due.length} ${due.length===1?'persona da ricontattare':'persone da ricontattare'} oggi`:'Sei in pari, nessun follow-up in scadenza'} · ${sentToday} inviati oggi</p></div><div class="acts"><button class="btn pri" onclick="openForm()">${ic('plus')}Nuovo lead</button></div></div>
+  return `<div class="hd"><div><h1>Follow-up</h1><p>${due.length?`${due.length} ${due.length===1?'persona da ricontattare':'persone da ricontattare'} oggi`:'Sei in pari, nessun follow-up in scadenza'} · ${sentToday} inviati oggi</p></div><div class="acts"><button class="btn pri nl" onclick="openForm()">${ic('plus')}Nuovo lead</button></div></div>
   ${due.length?`<div class="fgrid">${due.map(fuCard).join('')}</div>`:`<div class="card">${empty('check','Tutto fatto per oggi','Aggiungi i nuovi lead dai commenti con il tasto +',`<button class="btn pri sm" onclick="openForm()">${ic('plus')}Nuovo lead</button>`)}</div>`}
   ${soon.length?`<div class="sech">${ic('cal',14)}Prossimi 3 giorni <em>${soon.length}</em></div><div class="card" style="padding:8px"><div class="ls">${soon.map(liRow).join('')}</div></div>`:''}
   ${cold.length?`<div class="sech">${ic('alert',14)}Messaggi finiti, decidi tu <em>${cold.length}</em></div><div class="card" style="padding:8px"><div class="ls">${cold.map(liRow).join('')}</div></div>`:''}`;
@@ -693,20 +695,20 @@ async function delLead(id){if(!await ask('Eliminare questo lead?','Verrà rimoss
 /* ====== FORM ====== */
 function openForm(id){
   const l=id?db.leads.find(x=>x.id===id):null;
-  form={id:l?.id||null,dir:l?.dir||'in',social:l?.social||db.cfg.lastSocial||'TikTok',fase:l?.fase||'nuovo'};
+  fm={id:l?.id||null,dir:l?.dir||'in',social:l?.social||db.cfg.lastSocial||'TikTok',fase:l?.fase||'nuovo'};
   $('#mod').innerHTML=`<div class="mh"><div><h2>${l?'Modifica lead':'Nuovo lead'}</h2><p>${l?'Aggiorna i dati':'Chi ti ha scritto o chi hai contattato'}</p></div><button class="ib" onclick="closeM()">${ic('x')}</button></div>
   <div class="mb">
     <div class="sec"><div class="st">Contatto</div><div class="fg">
       <div class="f full"><label>Nome <b>*</b></label><input id="fNome" value="${esc(l?.nome||'')}" placeholder="Francesca"></div>
-      <div class="f full"><label>Chi ha iniziato</label><div class="seg" id="fDir">${Object.entries(DIR).map(([k,d])=>`<button type="button" data-v="${k}" class="${form.dir===k?'on':''}" onclick="form.dir='${k}';segOn('fDir','${k}')">${ic(d.i)}${d.l}</button>`).join('')}</div></div>
-      <div class="f full"><label>Social</label><div class="spick" id="fSoc">${SOCIALS.map(s=>`<button type="button" data-v="${s.k}" style="--c:${s.c}" class="${form.social===s.k?'on':''}" onclick="form.social='${s.k}';segOn('fSoc','${s.k}')">${s.k}</button>`).join('')}</div></div>
+      <div class="f full"><label>Chi ha iniziato</label><div class="seg" id="fDir">${Object.entries(DIR).map(([k,d])=>`<button type="button" data-v="${k}" class="${fm.dir===k?'on':''}" onclick="fm.dir='${k}';segOn('fDir','${k}')">${ic(d.i)}${d.l}</button>`).join('')}</div></div>
+      <div class="f full"><label>Social</label><div class="spick" id="fSoc">${SOCIALS.map(s=>`<button type="button" data-v="${s.k}" style="--c:${s.c}" class="${fm.social===s.k?'on':''}" onclick="fm.social='${s.k}';segOn('fSoc','${s.k}')">${s.k}</button>`).join('')}</div></div>
       <div class="f"><label>Username social</label><input id="fUser" value="${esc(l?.user||'')}" placeholder="@francy"></div>
       <div class="f"><label>Telegram</label><input id="fTg" value="${esc(l?.tg||'')}" placeholder="@francesca"></div>
       <div class="f"><label>Telefono</label><input id="fTel" value="${esc(l?.tel||'')}" placeholder="+39…" inputmode="tel"></div>
       <div class="f"><label>Da quale contenuto</label><input id="fFonte" list="fonteL" value="${esc(l?.fonte||'')}" placeholder="es. video oro 12/11"><datalist id="fonteL">${[...new Set(db.leads.map(x=>x.fonte).filter(Boolean))].map(x=>`<option value="${esc(x)}">`).join('')}</datalist></div>
     </div></div>
     <div class="sec"><div class="st">Percorso</div><div class="fg">
-      <div class="f full"><label>Fase</label><div class="spick" id="fSt">${STAGES.filter(x=>x.k!=='perso').map(x=>`<button type="button" data-v="${x.k}" style="--c:${x.c}" class="${form.fase===x.k?'on':''}" onclick="form.fase='${x.k}';segOn('fSt','${x.k}')">${x.l}</button>`).join('')}</div><small>Il conto demo è facoltativo. Quando diventa Cliente il percorso finisce: il deposito lo segni nel Rebate CRM.</small></div>
+      <div class="f full"><label>Fase</label><div class="spick" id="fSt">${STAGES.filter(x=>x.k!=='perso').map(x=>`<button type="button" data-v="${x.k}" style="--c:${x.c}" class="${fm.fase===x.k?'on':''}" onclick="fm.fase='${x.k}';segOn('fSt','${x.k}')">${x.l}</button>`).join('')}</div><small>Il conto demo è facoltativo. Quando diventa Cliente il percorso finisce: il deposito lo segni nel Rebate CRM.</small></div>
       <div class="f"><label>Prossimo follow-up</label><input id="fFu" type="date" value="${l?.nextFu||''}"><small>Vuoto = lo calcola in automatico</small></div>
     </div></div>
     <div class="sec"><div class="f full"><label>Note</label><textarea id="fNote" placeholder="es. ha paura di perdere soldi, preferisce la sera…">${esc(l?.note||'')}</textarea></div></div>
@@ -716,20 +718,20 @@ function openForm(id){
   if(!l)setTimeout(()=>$('#fNome').focus(),120);
 }
 function segOn(id,v){document.querySelectorAll('#'+id+' button').forEach(b=>b.classList.toggle('on',b.dataset.v===v))}
-function closeM(){$('#ov').classList.remove('show');form=null;if(!$('#dw').classList.contains('show'))document.body.classList.remove('lock')}
+function closeM(){$('#ov').classList.remove('show');fm=null;if(!$('#dw').classList.contains('show'))document.body.classList.remove('lock')}
 function saveLead(){
   const nome=$('#fNome').value.trim();if(!nome){toast('Inserisci il nome',1);$('#fNome').focus();return}
-  let l=form.id?db.leads.find(x=>x.id===form.id):null;const isNew=!l;
+  let l=fm.id?db.leads.find(x=>x.id===fm.id):null;const isNew=!l;
   if(isNew)l={id:uid(),created:nowISO(),ev:[],fuIdx:0,maxFase:'nuovo'};
   const oldF=l.fase,oldDir=l.dir,manual=$('#fFu').value;
-  Object.assign(l,{nome,dir:form.dir,social:form.social,user:$('#fUser').value.trim(),tg:$('#fTg').value.trim(),tel:$('#fTel').value.trim(),fonte:$('#fFonte').value.trim(),note:$('#fNote').value.trim()});
-  if(isNew){l.fase=form.fase;ev(l,{t:'create',dir:form.dir,fase:form.fase});schedule(l,0)}
-  else if(oldF!==form.fase){persistLead(l,1);setStage(l.id,form.fase);l=db.leads.find(x=>x.id===form.id)}
-  else if(oldDir!==form.dir)schedule(l,l.fuIdx||0);
-  if(form.fase==='demo')l.demo=true;
+  Object.assign(l,{nome,dir:fm.dir,social:fm.social,user:$('#fUser').value.trim(),tg:$('#fTg').value.trim(),tel:$('#fTel').value.trim(),fonte:$('#fFonte').value.trim(),note:$('#fNote').value.trim()});
+  if(isNew){l.fase=fm.fase;ev(l,{t:'create',dir:fm.dir,fase:fm.fase});schedule(l,0)}
+  else if(oldF!==fm.fase){persistLead(l,1);setStage(l.id,fm.fase);l=db.leads.find(x=>x.id===fm.id)}
+  else if(oldDir!==fm.dir)schedule(l,l.fuIdx||0);
+  if(fm.fase==='demo')l.demo=true;
   if(ORDER.indexOf(l.fase)>ORDER.indexOf(l.maxFase||'nuovo'))l.maxFase=l.fase;
   if(manual)l.nextFu=manual;
-  db.cfg.lastSocial=form.social;
+  db.cfg.lastSocial=fm.social;
   persistLead(l);closeM();render();toast(isNew?'Lead aggiunto':'Modifiche salvate');
 }
 
@@ -738,7 +740,7 @@ function vLeads(){
   const cnt={};STAGES.forEach(s=>cnt[s.k]=db.leads.filter(l=>l.fase===s.k).length);
   const q=lf.q.toLowerCase().trim();
   const list=db.leads.filter(l=>(!lf.fase||l.fase===lf.fase)&&(!lf.social||l.social===lf.social)&&(!lf.dir||l.dir===lf.dir)&&(!q||[l.nome,l.user,l.tg,l.tel,l.note,l.fonte].join(' ').toLowerCase().includes(q))).sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||''));
-  return `<div class="hd"><div><h1>Lead</h1><p>${db.leads.length} persone nel CRM</p></div><div class="acts"><button class="btn" onclick="exportCsv()">${ic('dl')}CSV</button><button class="btn pri" onclick="openForm()">${ic('plus')}Nuovo lead</button></div></div>
+  return `<div class="hd"><div><h1>Lead</h1><p>${db.leads.length} persone nel CRM</p></div><div class="acts"><button class="btn" onclick="exportCsv()">${ic('dl')}CSV</button><button class="btn pri nl" onclick="openForm()">${ic('plus')}Nuovo lead</button></div></div>
   <div class="pipe">${STAGES.map(s=>`<button class="stage ${lf.fase===s.k?'on':''}" style="--c:${s.c}" onclick="lf.fase=lf.fase==='${s.k}'?'':'${s.k}';render()"><small>${s.l}</small><b>${cnt[s.k]}</b></button>`).join('')}</div>
   <div class="tb"><div class="srch">${ic('search')}<input id="lq" placeholder="Cerca nome, username, telegram, video…" value="${esc(lf.q)}" oninput="lf.q=this.value;clearTimeout(window._lq);window._lq=setTimeout(()=>{render();const i=$('#lq');i.focus();i.setSelectionRange(i.value.length,i.value.length)},200)"></div>
     <select class="sel" onchange="lf.social=this.value;render()"><option value="">Tutti i social</option>${SOCIALS.map(s=>`<option ${lf.social===s.k?'selected':''}>${s.k}</option>`).join('')}</select>
@@ -927,11 +929,11 @@ async function start(u){user=u;try{pending=JSON.parse(localStorage.getItem(pKey(
 async function logout(){if(!await ask('Uscire?','Dovrai rifare il login su questo dispositivo.','Esci'))return;if(channel)sb.removeChannel(channel);await sb.auth.signOut();user=null;db.leads=[];closeDrawer();showAuth()}
 window.addEventListener('online',()=>{flush();if(user)loadRemote().catch(()=>{})});
 window.addEventListener('offline',()=>{if(!LOCAL)setSync('off')});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&user&&!form)loadRemote().catch(()=>{})});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('#cfo').classList.contains('show'))$('#cfo').classList.remove('show');else if(form)closeM();else closeDrawer()}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&user&&!fm)loadRemote().catch(()=>{})});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('#cfo').classList.contains('show'))$('#cfo').classList.remove('show');else if(fm)closeM();else closeDrawer()}});
 $('#ov').addEventListener('click',e=>{if(e.target.id==='ov')closeM()});
 document.addEventListener('pointermove',e=>{const c=e.target.closest&&e.target.closest('.card');if(!c)return;const r=c.getBoundingClientRect();c.style.setProperty('--mx',(e.clientX-r.left)+'px');c.style.setProperty('--my',(e.clientY-r.top)+'px')},{passive:true});
-setInterval(()=>{if(view==='oggi'&&!form&&document.visibilityState==='visible')counts()},60000);
+setInterval(()=>{if(view==='oggi'&&!fm&&document.visibilityState==='visible')counts()},60000);
 (async function init(){
   buildNav();
   if(LOCAL){cacheLoad();showApp();setSync('loc');return}
