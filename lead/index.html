@@ -279,8 +279,9 @@ input[type=date]{color-scheme:dark}
 .tps{border:1px solid var(--line);border-radius:var(--r);background:rgba(13,12,22,.6);overflow:hidden}
 .tps .tph{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--s1)}
 .tps .tph b{font-weight:600}
-.tpi{padding:14px 18px;border-bottom:1px solid var(--line);display:grid;grid-template-columns:34px 1fr;gap:12px}
+.tpi{padding:14px 18px;border-bottom:1px solid var(--line);display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start}
 .tpi:last-child{border-bottom:none}
+.tps .n2{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-weight:700;font-size:13px;flex-shrink:0;background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--c);border:1px solid color-mix(in srgb,var(--c) 35%,transparent)}
 .tpi .n{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:700;font-size:13px;background:var(--s3);color:var(--muted)}
 .tpi .rw{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
 .tpi input,.tpi select,.tpi textarea{height:34px;background:var(--bg);border:1px solid var(--line2);border-radius:9px;padding:0 10px;color:var(--text);outline:none;font-size:13px}
@@ -336,7 +337,7 @@ button,a,.li,.mrow,.stage,.chip{touch-action:manipulation;-webkit-tap-highlight-
  .tw.leads{display:none}.mlist{display:flex}
  .tb .srch{flex:1 1 100%}.tb .sel{flex:1 1 0;min-width:0}
  .f input,.f select,.f textarea,.srch input,.sel,.acard input,.tpi input,.tpi textarea{font-size:16px}
- .tpi{grid-template-columns:1fr}.tpi .n{display:none}
+ .tpi{grid-template-columns:1fr}.tpi .n{height:26px;justify-self:start}
  .dwh,.dwbody{padding-left:18px;padding-right:18px}
 }
 @media(max-width:520px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi{padding:14px}.kpi .v{font-size:18px}.kpi .l .i{display:none}.spk{width:60px;height:24px;right:12px;bottom:12px}.fu{padding:15px}.fu .ac .btn{flex:1;padding:0 6px}}
@@ -427,14 +428,15 @@ const ic=(n,s)=>`<svg class="i" viewBox="0 0 24 24"${s?` style="width:${s}px;hei
 /* ====== CONFIG CRM ====== */
 const STAGES=[
  {k:'nuovo',l:'Messaggio mandato',c:'#94a3b8'},
- {k:'corso',l:'Corso inviato',c:'#60a5fa'},
  {k:'telegram',l:'Su Telegram',c:'#22d3ee'},
+ {k:'corso',l:'Corso inviato',c:'#60a5fa'},
  {k:'demo',l:'Conto demo',c:'#a78bfa'},
  {k:'reale',l:'Conto reale',c:'#fbbf24'},
  {k:'cliente',l:'Cliente',c:'#34d399'},
  {k:'perso',l:'Perso',c:'#f87171'}
 ];
-const ORDER=['nuovo','corso','telegram','demo','reale','cliente'];
+const SDESC={nuovo:'Gli hai scritto su TikTok ma non è ancora passato su Telegram. Follow-up da mandare su TikTok.',telegram:'Ti ha scritto su Telegram: mandagli il corso. Quando premi Mandato passa da solo a Corso inviato.',corso:'Ha ricevuto il corso. Se non risponde, follow-up su Telegram.',demo:'Sta provando il conto demo.',reale:'Ha aperto il conto reale, deve fare il deposito.'};
+const ORDER=['nuovo','telegram','corso','demo','reale','cliente'];
 const SOCIALS=[{k:'TikTok',c:'#f472b6'},{k:'Instagram',c:'#e879f9'},{k:'YouTube',c:'#f87171'},{k:'Telegram',c:'#38bdf8'},{k:'Altro',c:'#94a3b8'}];
 const MOTIVI=['Non risponde più','Non ha soldi','Non si fida / paura','Già con un altro','Non interessato','Altro'];
 const DIR={in:{l:'Mi ha scritto lui',s:'Inbound',i:'in'},out:{l:'L\'ho contattato io',s:'Outbound',i:'out'}};
@@ -443,19 +445,17 @@ const isConv=l=>l.fase==='cliente'||ORDER.indexOf(l.maxFase)>=ORDER.indexOf('cli
 let _n=0;const T=(o,tipo,g,t)=>({id:'t'+(++_n),o,tipo,g,t});
 const DEFAULT_TPL={
  nuovo:[
+  T('','TikTok · Hai visto il messaggio?',1,"Ciao {nome}! 👋 Hai visto il mio messaggio? Il corso gratuito è pronto, scrivimi \"corso\" su Telegram (@LucaPuleo) e te lo mando subito 📚"),
+  T('','TikTok · Corso da parte',2,"Ehi {nome}, il corso te lo tengo da parte 😊 Qui su TikTok i messaggi a volte si perdono, per questo lo mando su Telegram: cerca @LucaPuleo e scrivimi \"corso\" 👇"),
+  T('','TikTok · Ultimo messaggio',4,"Ciao {nome}, ultimo messaggio da parte mia! Se vuoi ancora il corso gratuito scrivimi su Telegram quando vuoi (@LucaPuleo), sarò felice di mandartelo 💪")
+ ],
+ telegram:[
+  {id:'t_corso0',o:'',tipo:'Invio corso + VIP',g:0,adv:'corso',t:"Ciao {nome}! 👋 Ecco a te la playlist del corso gratuito:\n{link}\n\nInizia dal primo video e dimmi cosa ne pensi 💪\n\nSe vuoi anche entrare nel gruppo VIP dove condivido le mie operazioni, scrivimi \"VIP\" e ti spiego tutto 📈"}
+ ],
+ corso:[
   T('','Esperienza nel trading',1,"Ciao {nome}, come va? Posso chiederti se hai gia avuto delle esperienze nel trading o questa è la tua prima volta?"),
   T('','Valutato l\'opportunità?',2,"Ciao {nome}, tutto bene? Sei riuscito a valutare per bene l'opportunità? Cosa dici partiamo assieme in questo percorso?"),
   T('','Chiusura chat',4,"Ciao {nome}, come stai? Vedo che non rispondi veramente da tantissimo tempo quindi deduco tu non sia piu interessato in questo percorso, motivo per cui archivio la chat e contattami direttamente tu appena sei pronto che sarò super felice e disponibile a continuare questo percorso con te!")
- ],
- corso:[
-  T('','Check corso',1,"Ehi {nome}! Sei riuscita/o a guardare il corso? 😊 Se hai dubbi scrivimi pure, ti rispondo io"),
-  T('','Invito Telegram',2,"{nome} ti lascio il mio Telegram, lì metto tutti gli aggiornamenti e rispondo più veloce 👇\n{link}"),
-  T('','Ultimo messaggio',4,"Ciao {nome}! Ultimo messaggio, promesso 😄 Se vuoi iniziare davvero ti seguo io passo passo. Fammi sapere!")
- ],
- telegram:[
-  T('','Benvenuto + primo passo',1,"Benvenuta/o {nome}! 🙌 Il primo passo è aprire il conto, ci vogliono 5 minuti. Ti mando il link?"),
-  T('','Link broker',2,"Ehi {nome}, ecco il link per aprire il conto. Se ti blocchi mandami lo screen 👇\n{broker}"),
-  T('','Proposta demo',4,"{nome} se vuoi prima provare senza rischiare niente puoi partire con il conto demo. Dimmi tu cosa preferisci 😊")
  ],
  demo:[
   T('','Check demo',1,"Ciao {nome}! Come va con il conto demo? Hai provato a fare qualche operazione? 📈"),
@@ -632,6 +632,7 @@ function ev(l,o){(l.ev=l.ev||[]).push({d:nowISO(),...o})}
 function fuDone(id){
   const l=db.leads.find(x=>x.id===id);if(!l)return;const t=curTpl(l);if(!t)return;
   ev(l,{t:'fu',fase:l.fase,n:(l.fuIdx||0)+1,tid:t.id,tn:t.tipo});l.risposto=false;
+  if(t.adv&&t.adv!==l.fase&&STAGES.some(s=>s.k===t.adv)){persistLead(l,1);setStage(l.id,t.adv);return}
   schedule(l,(l.fuIdx||0)+1);persistLead(l);render();
   toast(l.nextFu?`Segnato · prossimo ${fd(l.nextFu)}`:'Segnato · messaggi finiti per questa fase');
 }
@@ -893,18 +894,19 @@ function vTpl(){
   if(!tplDraft)tplDraft={tpl:JSON.parse(JSON.stringify(TPL())),link:db.cfg.link||'',brokerLink:db.cfg.brokerLink||''};
   const ts={};tplStats(db.leads).forEach(t=>ts[t.id]=t);
   return `<div class="hd"><div><h1>Messaggi</h1><p>I follow-up da copiare e incollare, fase per fase</p></div><div class="acts"><button class="btn" onclick="resetTpl()">Ripristina default</button><button class="btn pri" onclick="saveTpl()">${ic('save')}Salva</button></div></div>
-  <div class="hint">Nei testi usa <code>{nome}</code> per il nome, <code>{link}</code> per il link del corso/Telegram e <code>{broker}</code> per il link del broker. I <b>giorni</b> sono quanti giorni aspettare dal messaggio prima. Se metti "Solo inbound" o "Solo outbound" quel messaggio esce solo a chi ti ha scritto lui o solo a chi hai contattato tu.</div>
-  <div class="card" style="margin-bottom:14px"><div class="fg"><div class="f"><label>Link corso / Telegram → {link}</label><input value="${esc(tplDraft.link)}" oninput="tplDraft.link=this.value" placeholder="https://t.me/..."></div><div class="f"><label>Link broker → {broker}</label><input value="${esc(tplDraft.brokerLink)}" oninput="tplDraft.brokerLink=this.value" placeholder="https://..."></div></div></div>
-  <div class="tpls">${STAGES.filter(s=>s.k!=='perso').map(s=>`<div class="tps"><div class="tph">${stag(s.k)}<span class="dimc" style="font-size:12px">${(tplDraft.tpl[s.k]||[]).length} messaggi</span><span class="sp"></span><button class="btn sm" onclick="addTpl('${s.k}')">${ic('plus')}Aggiungi</button></div>
-    ${(tplDraft.tpl[s.k]||[]).map((t,i)=>{const x=ts[t.id];return`<div class="tpi"><div class="n">${i+1}</div><div>
+  <div class="hint">Nei testi usa <code>{nome}</code> per il nome, <code>{link}</code> per il link del corso e <code>{broker}</code> per il link del broker. I <b>giorni</b> sono quanti giorni aspettare dal messaggio prima (a sinistra vedi il giorno del percorso). I follow-up partono solo se la persona non ha risposto. Se metti "Solo inbound" o "Solo outbound" quel messaggio esce solo a chi ti ha scritto lui o solo a chi hai contattato tu.</div>
+  <div class="card" style="margin-bottom:14px"><div class="fg"><div class="f"><label>Link corso (playlist) → {link}</label><input value="${esc(tplDraft.link)}" oninput="tplDraft.link=this.value" placeholder="https://t.me/..."></div><div class="f"><label>Link broker → {broker}</label><input value="${esc(tplDraft.brokerLink)}" oninput="tplDraft.brokerLink=this.value" placeholder="https://..."></div></div></div>
+  <div class="tpls">${STAGES.filter(s=>s.k!=='perso'&&s.k!=='cliente').map((s,si)=>{let cum=0;return`<div class="tps"><div class="tph"><span class="n2" style="--c:${s.c}">${si+1}</span><div style="flex:1;min-width:0"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${stag(s.k)}<span class="dimc" style="font-size:12px">${(tplDraft.tpl[s.k]||[]).length} messaggi</span></div><div class="dimc" style="font-size:12px;margin-top:4px">${SDESC[s.k]||''}</div></div><button class="btn sm" onclick="addTpl('${s.k}')">${ic('plus')}Aggiungi</button></div>
+    ${(tplDraft.tpl[s.k]||[]).map((t,i)=>{cum+=Number(t.g)||0;const x=ts[t.id];return`<div class="tpi"><div class="n" style="width:auto;padding:0 10px;white-space:nowrap;font-size:12px">${cum===0?'Subito':'Giorno '+cum}</div><div>
       <div class="rw"><input style="flex:1;min-width:160px" value="${esc(t.tipo)}" placeholder="Tipo (es. Check corso)" oninput="tplDraft.tpl['${s.k}'][${i}].tipo=this.value">
-      <span class="dimc" style="font-size:12px">dopo</span><input type="number" min="0" style="width:64px" value="${t.g}" oninput="tplDraft.tpl['${s.k}'][${i}].g=Number(this.value)||0"><span class="dimc" style="font-size:12px">giorni</span>
+      <span class="dimc" style="font-size:12px">dopo</span><input type="number" min="0" style="width:64px" value="${t.g}" onchange="tplDraft.tpl['${s.k}'][${i}].g=Number(this.value)||0;render()"><span class="dimc" style="font-size:12px">giorni dal precedente</span>
       <select onchange="tplDraft.tpl['${s.k}'][${i}].o=this.value"><option value="" ${!t.o?'selected':''}>Tutti</option><option value="in" ${t.o==='in'?'selected':''}>Solo inbound</option><option value="out" ${t.o==='out'?'selected':''}>Solo outbound</option></select>
       <button class="ib" title="Su" onclick="mvTpl('${s.k}',${i},-1)">↑</button><button class="ib" title="Giù" onclick="mvTpl('${s.k}',${i},1)">↓</button><button class="ib" onclick="delTpl('${s.k}',${i})" style="color:var(--red)">${ic('trash')}</button></div>
-      <textarea oninput="tplDraft.tpl['${s.k}'][${i}].t=this.value">${esc(t.t)}</textarea>
+      <textarea rows="${Math.max(3,(t.t||'').split('\n').length+Math.ceil((t.t||'').length/110))}" oninput="tplDraft.tpl['${s.k}'][${i}].t=this.value">${esc(t.t)}</textarea>
+      ${t.adv?`<div class="st2" style="color:var(--cyan)">${ic('arrow',12)} Dopo "Mandato" il lead passa da solo a ${esc(st(t.adv).l)}</div>`:''}
       ${x&&x.sent?`<div class="st2"><span>Mandato ${x.sent} volte</span><span>Risposte ${pct(x.rep,x.sent)}%</span><span>Efficacia ${pct(x.eff,x.sent)}%</span>${verdict(x.eff,x.sent)}</div>`:''}
     </div></div>`}).join('')||'<div class="tpi" style="display:block"><span class="dimc">Nessun messaggio per questa fase</span></div>'}
-  </div>`).join('')}</div>
+  </div>`}).join('')}</div>
   <div class="card" style="margin-top:14px"><div class="ct"><h3>Backup</h3><span>Esporta o importa tutti i lead</span></div><div class="acts"><button class="btn" onclick="exportJson()">${ic('dl')}Esporta backup</button><button class="btn" onclick="$('#imp').click()">Importa backup</button><button class="btn" onclick="exportCsv()">${ic('dl')}Esporta CSV</button><input type="file" id="imp" accept=".json" class="hidden" onchange="importJson(event)"></div></div>`;
 }
 function addTpl(k){(tplDraft.tpl[k]=tplDraft.tpl[k]||[]).push({id:'t'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),o:'',tipo:'',g:2,t:'Ciao {nome}! '});render()}
