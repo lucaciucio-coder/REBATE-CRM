@@ -189,9 +189,11 @@ th.nm{text-align:right}
 .fu{padding:18px 20px}
 .fu .top{display:flex;align-items:center;gap:12px}
 .fu .top .tx{flex:1;min-width:0}.fu .top .tx b{font-weight:600;font-size:15px;display:block}.fu .top .tx small{color:var(--dim);font-size:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:2px}
-.fu .meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:14px 0 8px;font-size:12px;color:var(--muted)}
+.meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:14px 0 8px;font-size:12px;color:var(--muted)}
 .bubble{padding:14px 16px;border-radius:14px 14px 14px 4px;background:linear-gradient(180deg,rgba(167,139,250,.1),rgba(244,114,182,.06));border:1px solid rgba(192,132,252,.2);white-space:pre-wrap;font-size:13.5px;line-height:1.55;color:var(--text)}
-.fu .ac{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.bubble.sent{opacity:.5;filter:grayscale(.6)}
+.btn.done,.btn.done:hover{background:var(--s3);border-color:var(--line2);color:var(--dim);cursor:default;filter:none;transform:none}
+.ac{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
 .fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:14px}
 .sech{font-size:12px;font-weight:700;color:var(--dim);letter-spacing:.8px;text-transform:uppercase;margin:24px 0 12px;display:flex;align-items:center;gap:8px}
 .sech em{font-style:normal;background:var(--s3);color:var(--muted);padding:1px 8px;border-radius:10px;font-size:11px}
@@ -435,7 +437,7 @@ const STAGES=[
  {k:'cliente',l:'Cliente',c:'#34d399'},
  {k:'perso',l:'Perso',c:'#f87171'}
 ];
-const SDESC={nuovo:'Gli hai scritto su TikTok ma non è ancora passato su Telegram. Follow-up da mandare su TikTok.',telegram:'Ti ha scritto su Telegram: mandagli il corso. Quando premi Mandato passa da solo a Corso inviato.',corso:'Ha ricevuto il corso. Se non risponde, follow-up su Telegram.',demo:'Sta provando il conto demo.',reale:'Ha aperto il conto reale, deve fare il deposito.'};
+const SDESC={nuovo:'Ha commentato “corso” su TikTok: gli scrivi in privato per portarlo su Telegram. Se non risponde, follow-up su TikTok.',telegram:'Ti ha scritto su Telegram: gli mandi il corso, poi lo sposti tu in Corso inviato.',corso:'Da qui partono i follow-up su Telegram se non risponde.',demo:'Sta provando il conto demo.',reale:'Ha aperto il conto reale, deve fare il deposito.'};
 const ORDER=['nuovo','telegram','corso','demo','reale','cliente'];
 const SOCIALS=[{k:'TikTok',c:'#f472b6'},{k:'Instagram',c:'#e879f9'},{k:'YouTube',c:'#f87171'},{k:'Telegram',c:'#38bdf8'},{k:'Altro',c:'#94a3b8'}];
 const MOTIVI=['Non risponde più','Non ha soldi','Non si fida / paura','Già con un altro','Non interessato','Altro'];
@@ -445,12 +447,13 @@ const isConv=l=>l.fase==='cliente'||ORDER.indexOf(l.maxFase)>=ORDER.indexOf('cli
 let _n=0;const T=(o,tipo,g,t)=>({id:'t'+(++_n),o,tipo,g,t});
 const DEFAULT_TPL={
  nuovo:[
+  {id:'t_tt0',o:'',tipo:'TikTok · Primo messaggio',g:0,t:"Ciao {nome}, piacere sono Luca. Ho visto che hai commentato “corso” sotto il mio video. Per riceverlo scrivimi in privato su Telegram cosi te lo mando🔥\nCerca nella barra di ricerca di Telegram: @LucaPuleo e mi scrivi (ho il verificato - occhio ai Fake).\nAppena lo hai mandato dimmelo che verifico 👍"},
   T('','TikTok · Hai visto il messaggio?',1,"Ciao {nome}! 👋 Hai visto il mio messaggio? Il corso gratuito è pronto, scrivimi \"corso\" su Telegram (@LucaPuleo) e te lo mando subito 📚"),
   T('','TikTok · Corso da parte',2,"Ehi {nome}, il corso te lo tengo da parte 😊 Qui su TikTok i messaggi a volte si perdono, per questo lo mando su Telegram: cerca @LucaPuleo e scrivimi \"corso\" 👇"),
   T('','TikTok · Ultimo messaggio',4,"Ciao {nome}, ultimo messaggio da parte mia! Se vuoi ancora il corso gratuito scrivimi su Telegram quando vuoi (@LucaPuleo), sarò felice di mandartelo 💪")
  ],
  telegram:[
-  {id:'t_corso0',o:'',tipo:'Invio corso + VIP',g:0,adv:'corso',t:"Ciao {nome}! 👋 Ecco a te la playlist del corso gratuito:\n{link}\n\nInizia dal primo video e dimmi cosa ne pensi 💪\n\nSe vuoi anche entrare nel gruppo VIP dove condivido le mie operazioni, scrivimi \"VIP\" e ti spiego tutto 📈"}
+  {id:'t_corso0',o:'',tipo:'Invio corso + VIP',g:0,t:"Ciao {nome}! 👋 Ecco a te la playlist del corso gratuito:\n{link}\n\nInizia dal primo video e dimmi cosa ne pensi 💪\n\nSe vuoi anche entrare nel gruppo VIP dove condivido le mie operazioni, scrivimi \"VIP\" e ti spiego tutto 📈"}
  ],
  corso:[
   T('','Esperienza nel trading',1,"Ciao {nome}, come va? Posso chiederti se hai gia avuto delle esperienze nel trading o questa è la tua prima volta?"),
@@ -510,6 +513,8 @@ const curTpl=l=>{const ls=tplList(l.fase,l.dir);return ls[l.fuIdx||0]||null};
 const tplById=id=>{for(const k in TPL()){const t=TPL()[k].find(x=>x.id===id);if(t)return{...t,fase:k}}return null};
 const fill=(t,l)=>(t||'').replaceAll('{nome}',first(l.nome)).replaceAll('{link}',db.cfg.link||'[link]').replaceAll('{broker}',db.cfg.brokerLink||'[link broker]');
 function schedule(l,fromIdx){const ls=tplList(l.fase,l.dir);const t=ls[fromIdx];l.fuIdx=fromIdx;l.nextFu=(l.fase==='perso'||!t)?null:addD(Number(t.g)||0)}
+const sentToday=l=>!!(l.sent&&ymd(l.sent.d)===ymd(new Date())&&l.sent.fase===l.fase);
+const isDue=l=>active(l)&&l.nextFu&&dd(l.nextFu)<=0;
 const lastFu=l=>{const e=(l.ev||[]).filter(x=>x.t==='fu');return e[e.length-1]||null};
 
 /* ====== PERSISTENZA & SYNC (stessa logica del Rebate CRM) ====== */
@@ -600,8 +605,12 @@ function render(anim){
 const active=l=>l.fase!=='perso'&&l.fase!=='cliente';
 const dueLeads=()=>db.leads.filter(l=>active(l)&&l.nextFu&&dd(l.nextFu)<=0).sort((a,b)=>a.nextFu.localeCompare(b.nextFu));
 function dueLbl(l){if(!l.nextFu)return l.risposto&&active(l)?'<span class="due" style="color:var(--cyan)">Ha risposto</span>':'<span class="due nx">Nessun follow-up</span>';const d=dd(l.nextFu);if(d<0)return`<span class="due late">${ic('clock',12)}In ritardo ${-d}g</span>`;if(d===0)return`<span class="due tod">${ic('bell',12)}Oggi</span>`;if(d===1)return'<span class="due nx">Domani</span>';return`<span class="due nx">${fd(l.nextFu)}</span>`}
+function sentBlock(l){const s=l.sent;return `<div class="meta"><span class="vd m">FU ${s.n}/${s.tot} · ${esc(s.tn)}</span><span class="due" style="color:var(--green)">${ic('check',12)}Mandato alle ${new Date(s.d).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}</span></div><div class="bubble sent">${esc(s.txt)}</div><div class="ac"><button class="btn sm done" disabled>${ic('check')}Mandato</button><span class="dimc" style="font-size:12px;align-self:center">${l.nextFu?`Prossimo follow-up: ${fd(l.nextFu)}`:'Nessun altro messaggio: spostalo tu di fase'}</span></div>`}
 function fuCard(l){
   const t=curTpl(l),ls=tplList(l.fase,l.dir),n=(l.fuIdx||0)+1,s=soc(l.social);
+  if(sentToday(l)&&!isDue(l))return `<div class="card fu">
+    <div class="top">${av(l.nome)}<div class="tx"><b>${esc(l.nome)}</b><small>${tag(esc(l.social||'—'),s.c,'nd')}${l.tg?`<span>${esc(l.tg)}</span>`:l.user?`<span>${esc(l.user)}</span>`:''}</small></div><button class="ib" onclick="drawer('${l.id}')">${ic('arrow')}</button></div>
+    <div class="meta" style="margin-bottom:0">${stag(l.fase)}${dirB(l.dir)}</div>${sentBlock(l)}</div>`;
   return `<div class="card fu">
     <div class="top">${av(l.nome)}<div class="tx"><b>${esc(l.nome)}</b><small>${tag(esc(l.social||'—'),s.c,'nd')}${l.tg?`<span>${esc(l.tg)}</span>`:l.user?`<span>${esc(l.user)}</span>`:''}</small></div><button class="ib" onclick="drawer('${l.id}')">${ic('arrow')}</button></div>
     <div class="meta">${stag(l.fase)}${dirB(l.dir)}${t?`<span class="vd m">FU ${n}/${ls.length} · ${esc(t.tipo)}</span>`:''}${dueLbl(l)}</div>
@@ -614,16 +623,17 @@ function fuCard(l){
     </div></div>`;
 }
 function vOggi(){
-  const due=dueLeads();
-  const soon=db.leads.filter(l=>active(l)&&l.nextFu&&dd(l.nextFu)>0&&dd(l.nextFu)<=3).sort((a,b)=>a.nextFu.localeCompare(b.nextFu));
+  const due=dueLeads();const sentL=db.leads.filter(l=>active(l)&&sentToday(l)&&!isDue(l)).sort((a,b)=>b.sent.d.localeCompare(a.sent.d));
+  const soon=db.leads.filter(l=>active(l)&&!sentToday(l)&&l.nextFu&&dd(l.nextFu)>0&&dd(l.nextFu)<=3).sort((a,b)=>a.nextFu.localeCompare(b.nextFu));
   const rep=db.leads.filter(l=>active(l)&&l.risposto&&!l.nextFu);
-  const cold=db.leads.filter(l=>active(l)&&!l.nextFu&&!l.risposto);
-  const sentToday=db.leads.reduce((a,l)=>a+(l.ev||[]).filter(e=>e.t==='fu'&&ymd(e.d)===ymd(new Date())).length,0);
-  return `<div class="hd"><div><h1>Follow-up</h1><p>${due.length?`${due.length} ${due.length===1?'persona da ricontattare':'persone da ricontattare'} oggi`:'Sei in pari, nessun follow-up in scadenza'} · ${sentToday} inviati oggi</p></div><div class="acts"><button class="btn pri nl" onclick="openForm()">${ic('plus')}Nuovo lead</button></div></div>
-  ${due.length?`<div class="fgrid">${due.map(fuCard).join('')}</div>`:`<div class="card">${empty('check','Tutto fatto per oggi','Aggiungi i nuovi lead dai commenti con il tasto +',`<button class="btn pri sm" onclick="openForm()">${ic('plus')}Nuovo lead</button>`)}</div>`}
+  const cold=db.leads.filter(l=>active(l)&&!l.nextFu&&!l.risposto&&!sentToday(l));
+  const nSentToday=db.leads.reduce((a,l)=>a+(l.ev||[]).filter(e=>e.t==='fu'&&ymd(e.d)===ymd(new Date())).length,0);
+  return `<div class="hd"><div><h1>Follow-up</h1><p>${due.length?`${due.length} ${due.length===1?'persona da ricontattare':'persone da ricontattare'} oggi`:'Sei in pari, nessun follow-up in scadenza'} · ${nSentToday} inviati oggi</p></div><div class="acts"><button class="btn pri nl" onclick="openForm()">${ic('plus')}Nuovo lead</button></div></div>
+  ${due.length?`<div class="fgrid">${due.map(fuCard).join('')}</div>`:sentL.length?'':`<div class="card">${empty('check','Tutto fatto per oggi','Aggiungi i nuovi lead dai commenti con il tasto +',`<button class="btn pri sm" onclick="openForm()">${ic('plus')}Nuovo lead</button>`)}</div>`}
+  ${sentL.length?`<div class="sech">${ic('check',14)}Mandati oggi <em>${sentL.length}</em></div><div class="fgrid">${sentL.map(fuCard).join('')}</div>`:''}
   ${soon.length?`<div class="sech">${ic('cal',14)}Prossimi 3 giorni <em>${soon.length}</em></div><div class="card" style="padding:8px"><div class="ls">${soon.map(liRow).join('')}</div></div>`:''}
   ${rep.length?`<div class="sech">${ic('reply',14)}Ti hanno risposto: spostali di fase <em>${rep.length}</em></div><div class="card" style="padding:8px"><div class="ls">${rep.map(l=>`<div class="li" onclick="drawer('${l.id}')">${av(l.nome,'xs')}<div class="tx"><b>${esc(l.nome)}</b><small>${stag(l.fase)}${dirB(l.dir)}</small></div><div class="rt"><button class="btn sm" onclick="event.stopPropagation();resume('${l.id}')">${ic('clock')}Riprendi follow-up</button></div></div>`).join('')}</div></div>`:''}
-  ${cold.length?`<div class="sech">${ic('alert',14)}Messaggi finiti, decidi tu <em>${cold.length}</em></div><div class="card" style="padding:8px"><div class="ls">${cold.map(liRow).join('')}</div></div>`:''}`;
+  ${cold.length?`<div class="sech">${ic('alert',14)}Da spostare di fase <em>${cold.length}</em></div><div class="card" style="padding:8px"><div class="ls">${cold.map(liRow).join('')}</div></div>`:''}`;
 }
 const liRow=l=>`<div class="li" onclick="drawer('${l.id}')">${av(l.nome,'xs')}<div class="tx"><b>${esc(l.nome)}</b><small>${stag(l.fase)}${dirB(l.dir)}</small></div><div class="rt">${dueLbl(l)}</div></div>`;
 
@@ -632,9 +642,9 @@ function ev(l,o){(l.ev=l.ev||[]).push({d:nowISO(),...o})}
 function fuDone(id){
   const l=db.leads.find(x=>x.id===id);if(!l)return;const t=curTpl(l);if(!t)return;
   ev(l,{t:'fu',fase:l.fase,n:(l.fuIdx||0)+1,tid:t.id,tn:t.tipo});l.risposto=false;
-  if(t.adv&&t.adv!==l.fase&&STAGES.some(s=>s.k===t.adv)){persistLead(l,1);setStage(l.id,t.adv);return}
+  l.sent={d:nowISO(),fase:l.fase,n:(l.fuIdx||0)+1,tot:tplList(l.fase,l.dir).length,tn:t.tipo,txt:fill(t.t,l)};
   schedule(l,(l.fuIdx||0)+1);persistLead(l);render();
-  toast(l.nextFu?`Segnato · prossimo ${fd(l.nextFu)}`:'Segnato · messaggi finiti per questa fase');
+  toast(l.nextFu?`Mandato ✓ · prossimo follow-up ${fd(l.nextFu)}`:'Mandato ✓ · ora spostalo tu di fase quando fa il passo');
 }
 function replied(id){
   const l=db.leads.find(x=>x.id===id);if(!l)return;const f=lastFu(l);
@@ -678,11 +688,11 @@ function drawer(id,keep){
   const evIc={create:['plus','#c084fc'],fu:['send','#f472b6'],reply:['reply','#22d3ee'],stage:['flag','#34d399'],snooze:['skip','#94a3b8']};
   const evTx=e=>e.t==='create'?`Aggiunto · ${DIR[e.dir]?.s||''}`:e.t==='fu'?`FU ${e.n} mandato · ${esc(e.tn||'')}`:e.t==='reply'?`Ha risposto${e.ref&&e.ref.tn?` al FU "${esc(e.ref.tn)}"`:''}`:e.t==='stage'?`${esc(st(e.from).l)} → ${esc(st(e.to).l)}${e.to==='perso'&&l.motivo?` · ${esc(l.motivo)}`:''}`:e.t==='snooze'?`Rimandato a ${fd(e.to)}`:'';
   $('#dw').innerHTML=`<div class="dwh"><div class="dwt">${av(l.nome,'lg')}<div style="min-width:0;flex:1"><h2>${esc(l.nome)}</h2><div class="bd">${stag(l.fase)}${dirB(l.dir)}${tag(esc(l.social||'—'),s.c,'nd')}</div></div><button class="ib" onclick="closeDrawer()">${ic('x')}</button></div>
-    <div class="dwa"><button class="btn sm" onclick="openForm('${l.id}')">${ic('edit')}Modifica</button><button class="btn sm rep" onclick="replied('${l.id}')">${ic('reply')}Ha risposto</button>${l.tg?`<a class="btn sm" href="https://t.me/${esc(l.tg.replace(/^@/,''))}" target="_blank" rel="noopener">${ic('tg')}Telegram</a>`:''}<span class="sp"></span><button class="btn sm ghost danger" onclick="delLead('${l.id}')">${ic('trash')}</button></div></div>
+    <div class="dwa"><button class="btn sm" onclick="openForm('${l.id}')">${ic('edit')}Modifica</button>${l.tg?`<a class="btn sm" href="https://t.me/${esc(l.tg.replace(/^@/,''))}" target="_blank" rel="noopener">${ic('tg')}Telegram</a>`:''}<span class="sp"></span><button class="btn sm ghost danger" onclick="delLead('${l.id}')">${ic('trash')}</button></div></div>
   <div class="dwbody">
     <div class="mst"><div class="ms"><small>Follow-up mandati</small><b>${fus}</b></div><div class="ms"><small>Risposte</small><b>${reps}</b></div><div class="ms"><small>Giorni nel CRM</small><b>${days}</b></div></div>
     <div class="blk"><h4>Sposta in fase</h4><div class="spick">${STAGES.map(x=>`<button class="${x.k===l.fase?'on':''}" style="--c:${x.c}" onclick="setStage('${l.id}','${x.k}')">${x.l}</button>`).join('')}</div></div>
-    <div class="blk"><h4>Prossimo messaggio</h4>${l.risposto&&!l.nextFu&&active(l)?`<div class="note" style="margin-bottom:10px">Ha risposto: follow-up in pausa. Spostalo di fase quando fa il passo, oppure <a class="lnk" style="color:var(--pink);cursor:pointer" onclick="resume('${l.id}')">riprendi i follow-up</a>.</div>`:''}${l.risposto&&!l.nextFu?'':t?`<div class="meta" style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"><span class="vd m">FU ${(l.fuIdx||0)+1}/${ls.length} · ${esc(t.tipo)}</span>${dueLbl(l)}</div><div class="bubble">${esc(fill(t.t,l))}</div><div class="dwa" style="margin-top:12px"><button class="btn sm pri" onclick="copyMsg('${l.id}')">${ic('copy')}Copia</button><button class="btn sm ok" onclick="fuDone('${l.id}')">${ic('send')}Mandato</button><button class="btn sm" onclick="snooze('${l.id}',1)">${ic('skip')}Domani</button></div>`:`<div class="note">Nessun messaggio in coda per questa fase.</div>`}
+    <div class="blk"><h4>Prossimo messaggio</h4>${l.risposto&&!l.nextFu&&active(l)?`<div class="note" style="margin-bottom:10px">Ha risposto: follow-up in pausa. Spostalo di fase quando fa il passo, oppure <a class="lnk" style="color:var(--pink);cursor:pointer" onclick="resume('${l.id}')">riprendi i follow-up</a>.</div>`:''}${l.risposto&&!l.nextFu?'':sentToday(l)&&!isDue(l)?sentBlock(l):t?`<div class="meta" style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"><span class="vd m">FU ${(l.fuIdx||0)+1}/${ls.length} · ${esc(t.tipo)}</span>${dueLbl(l)}</div><div class="bubble">${esc(fill(t.t,l))}</div><div class="dwa" style="margin-top:12px"><button class="btn sm pri" onclick="copyMsg('${l.id}')">${ic('copy')}Copia</button><button class="btn sm ok" onclick="fuDone('${l.id}')">${ic('send')}Mandato</button><button class="btn sm" onclick="snooze('${l.id}',1)">${ic('skip')}Domani</button></div>`:`<div class="note">Nessun messaggio in coda per questa fase.</div>`}
       <div class="f" style="margin-top:12px;max-width:220px"><label>Data follow-up</label><input type="date" value="${l.nextFu||''}" onchange="setFu('${l.id}',this.value)"></div></div>
     <div class="blk"><h4>Dati</h4><div class="ig">
       <div><small>Username</small><span>${esc(l.user||'—')}</span></div><div><small>Telegram</small><span>${esc(l.tg||'—')}</span></div>
@@ -903,7 +913,6 @@ function vTpl(){
       <select onchange="tplDraft.tpl['${s.k}'][${i}].o=this.value"><option value="" ${!t.o?'selected':''}>Tutti</option><option value="in" ${t.o==='in'?'selected':''}>Solo inbound</option><option value="out" ${t.o==='out'?'selected':''}>Solo outbound</option></select>
       <button class="ib" title="Su" onclick="mvTpl('${s.k}',${i},-1)">↑</button><button class="ib" title="Giù" onclick="mvTpl('${s.k}',${i},1)">↓</button><button class="ib" onclick="delTpl('${s.k}',${i})" style="color:var(--red)">${ic('trash')}</button></div>
       <textarea rows="${Math.max(3,(t.t||'').split('\n').length+Math.ceil((t.t||'').length/110))}" oninput="tplDraft.tpl['${s.k}'][${i}].t=this.value">${esc(t.t)}</textarea>
-      ${t.adv?`<div class="st2" style="color:var(--cyan)">${ic('arrow',12)} Dopo "Mandato" il lead passa da solo a ${esc(st(t.adv).l)}</div>`:''}
       ${x&&x.sent?`<div class="st2"><span>Mandato ${x.sent} volte</span><span>Risposte ${pct(x.rep,x.sent)}%</span><span>Efficacia ${pct(x.eff,x.sent)}%</span>${verdict(x.eff,x.sent)}</div>`:''}
     </div></div>`}).join('')||'<div class="tpi" style="display:block"><span class="dimc">Nessun messaggio per questa fase</span></div>'}
   </div>`}).join('')}</div>
